@@ -3,6 +3,9 @@ package Block
 import (
 	"time"
 
+	"bytes"
+	"encoding/gob"
+	"log"
 )
 
 //定义一个区块链结构
@@ -27,3 +30,25 @@ func NewBlock(data string,prevBlockHash []byte) (block *Block) {
 	block.Nonce = nonce
 	return 
 }
+
+//序列化块
+func (b *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+	err := encoder.Encode(b)
+	if err != nil {
+		log.Panic(err)
+	}
+	return result.Bytes()
+}
+//返学裂化
+func DeserializeBlock(d []byte) *Block{
+	var block Block
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&block)
+	if err != nil{
+		panic("Block Deserialize Error!")
+	}
+	return &block
+}
+

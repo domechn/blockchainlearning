@@ -1,12 +1,9 @@
 package main
 
-import (
-	"fmt"
-	"mybclearning/Block"
-)
+import "mybclearning/Block"
 
 func main() {
-	bc := Block.NewBlockChain()
+	/*bc := Block.NewBlockChain()
 
 	bc.AddBlock("this is my blockChain1")
 	bc.AddBlock("this is my blockChain2")
@@ -23,5 +20,10 @@ func main() {
 		fmt.Printf("PoW: %s\n", pow.IsVaild())
 
 		fmt.Println()
-	}
+	}*/
+	bc := Block.NewBlockChain()
+	defer bc.DB.Close()
+
+	cli := Block.CLI{bc}
+	cli.Run()
 }
