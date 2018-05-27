@@ -21,9 +21,7 @@ func main() {
 
 		fmt.Println()
 	}*/
-	bc := Block.NewBlockChain()
-	defer bc.DB.Close()
 
-	cli := Block.CLI{bc}
+	cli := Block.CLI{}
 	cli.Run()
 }

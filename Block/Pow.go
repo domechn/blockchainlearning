@@ -31,7 +31,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	var hash [32]byte
 	nonce := 0
 	//打印当前块的数据
-	fmt.Printf("Mining the block containing \"%s\"\n", pow.block.Data)
+	fmt.Printf("Mining the block containing \"%s\"\n", pow.block.HashTransactions())
 	//设置边界 计算以防越界
 	for nonce < math.MaxInt64 {
 		//计算出需要求hash的数据
@@ -71,7 +71,7 @@ func (pow *ProofOfWork) IsVaild() bool{
 func (pow *ProofOfWork) prepareData(nonce int) (data []byte) {
 	data = bytes.Join([][]byte{
 		pow.block.PrevHash,
-		pow.block.Data,
+		pow.block.HashTransactions(),
 		Int64ToBytes(pow.block.Timestamp),
 		Int64ToBytes(int64(targetBits)),
 		Int64ToBytes(int64(nonce)),
