@@ -21,12 +21,25 @@ type Transaction struct {
 type TXInput struct {
 	Txid      []byte
 	Vout      int
-	ScriptSig string
+	Signature []byte
+	PubKey    []byte
 }
 
 type TXOutput struct {
 	Value        int
-	ScriptPubKey string
+	PubKeyHash []byte
+}
+
+func (in *TXInput) UsesKey(pubHashKey []byte) bool {
+	lockingHash := HashPubKey(pubHashKey)
+	return bytes.Compare(lockingHash,pubHashKey) == 0
+}
+
+func (out *TXOutput) Lock(address []byte)  {
+	pubKeyHash := Base58Decode(address)
+	pubKeyHash = pubKeyHash[1:len(pubKeyHash)-4]
+	out.PubKeyHash = pubKeyHash
+	
 }
 
 func (tx *Transaction) SetID() {
@@ -41,21 +54,19 @@ func (tx *Transaction) SetID() {
 	tx.ID = hash[:]
 }
 
-func (in *TXInput) CanUnlockOutputWith(unlockingData string) bool {
-	return in.ScriptSig == unlockingData
-}
-
-func (out *TXOutput) CanBeUnlockedWith(unlockingData string) bool {
-	return out.ScriptPubKey == unlockingData
+func NewTXOutput(value int ,address string) *TXOutput  {
+	txo := TXOutput{value,nil}
+	txo.Lock([]byte(address))
+	return &txo
 }
 
 func NewCoinbaseTX(to, data string) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Reward to '%s'", to)
 	}
-	txin := TXInput{[]byte{}, -1, data}
-	txout := TXOutput{subsidy, to}
-	tx := Transaction{nil, []TXInput{txin}, []TXOutput{txout}}
+	txin := TXInput{[]byte{}, -1,nil,[]byte(data)}
+	txout := NewTXOutput(subsidy,to)
+	tx := Transaction{nil, []TXInput{txin}, []TXOutput{*txout}}
 	tx.SetID()
 	return &tx
 }
@@ -64,7 +75,7 @@ func (tx Transaction) IsCoinbase() bool {
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 
-func NewUTXOTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
+func NewUTXOTransaction(wallet *Wallet,from, to string, amount int, bc *BlockChain) *Transaction {
 	if from == to {
 		fmt.Println("Cannot transacte to yourself")
 		os.Exit(1)
@@ -82,15 +93,15 @@ func NewUTXOTransaction(from, to string, amount int, bc *BlockChain) *Transactio
 		}
 
 		for _, out := range outs {
-			input := TXInput{txID, out, from}
+			input := TXInput{txID, out, nil,wallet.PublickKey}
 			inputs = append(inputs, input)
 		}
 	}
 
-	outputs = append(outputs, TXOutput{amount, to})
+	outputs = append(outputs, *NewTXOutput(amount, to))
 
 	if acc > amount {
-		outputs = append(outputs, TXOutput{acc - amount, from})
+		outputs = append(outputs, *NewTXOutput(acc-amount, from))
 
 	}
 	tx := Transaction{nil, inputs, outputs}
