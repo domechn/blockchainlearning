@@ -31,7 +31,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	var hash [32]byte
 	nonce := 0
 	//打印当前块的数据
-	fmt.Printf("Mining the block containing \"%s\"\n", pow.block.HashTransactions())
+	// fmt.Printf("Mining the block containing \"%s\"\n", pow.block.HashTransactions())
 	//设置边界 计算以防越界
 	for nonce < math.MaxInt64 {
 		//计算出需要求hash的数据

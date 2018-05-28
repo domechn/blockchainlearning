@@ -195,7 +195,7 @@ func (bc *BlockChain) FindUnspentTransactions(address string) []Transaction {
 				}
 			}
 
-			if transaction.IsCoinbase() == false{
+			if transaction.IsCoinbase() == false {
 				for _, in := range transaction.Vin {
 					if in.CanUnlockOutputWith(address) {
 						inTxID := hex.EncodeToString(in.Txid)
