@@ -39,7 +39,7 @@ func (w Wallet) getAddress()[]byte{
 	versionedPayload := append([]byte{version},pubKeyHash...)
 	checksum := checksum(versionedPayload)
 	fullPayload := append(versionedPayload,checksum...)
-	address := Base58Encode(fullPayload,BitcoinAlphabet)
+	address := Base58Encode(fullPayload)
 	return []byte(address)
 }
 

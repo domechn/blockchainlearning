@@ -8,20 +8,21 @@ import (
 	"strconv"
 )
 
-const usage = `
-Usage:
-  getbalance -address ADDRESS - Get balance of ADDRESS
-  createblockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
-  printchain  print all the blocks of the blockchain
-  send -from FROM -to TO -amount AMOUNT - Send AMOUNT of coins from FROM address to TO
-`
 
 type CLI struct {
 }
 
 //打印提示操作
 func (cli *CLI) printUsage() {
-	fmt.Println(usage)
+	fmt.Println("Usage:")
+	fmt.Println("  createblockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
+	fmt.Println("  createwallet - Generates a new key-pair and saves it into the wallet file")
+	fmt.Println("  getbalance -address ADDRESS - Get balance of ADDRESS")
+	fmt.Println("  listaddresses - Lists all addresses from the wallet file")
+	fmt.Println("  printchain - Print all the blocks of the blockchain")
+	fmt.Println("  reindexutxo - Rebuilds the UTXO set")
+	fmt.Println("  send -from FROM -to TO -amount AMOUNT -mine - Send AMOUNT of coins from FROM address to TO. Mine on the same node, when -mine is set.")
+	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
 }
 
 //判断用户输入是否合法 如果不合法打印提示信息 并退出系统
@@ -55,10 +56,17 @@ func (cli *CLI) printChain() {
 func (cli *CLI) Run() {
 	//判断输入参数合法
 	cli.validateArgs()
+	nodeID := os.Getenv("NODE_ID")
+	if nodeID == "" {
+		fmt.Printf("NODE_ID env. var is not set!")
+		os.Exit(1)
+	}
+
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	//执行打印区块操作
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
 	createBlockchainCmd := flag.NewFlagSet("createblockchain", flag.ExitOnError)
+	createWalletCmd := flag.NewFlagSet("createwallet", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	//addblock -data "区块链data"
 	getBalanceAddress := getBalanceCmd.String("address", "", "The address to get balance for")
@@ -80,6 +88,11 @@ func (cli *CLI) Run() {
 		}
 	case "createblockchain":
 		err := createBlockchainCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "createwallet":
+		err := createWalletCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -109,6 +122,9 @@ func (cli *CLI) Run() {
 	//打印整个区块链
 	if printChainCmd.Parsed() {
 		cli.printChain()
+	}
+	if createWalletCmd.Parsed() {
+		cli.createWallet(nodeID)
 	}
 
 	if sendCmd.Parsed() {
@@ -144,4 +160,12 @@ func (cli *CLI) send(from, to string, amount int) {
 	tx := NewUTXOTransaction(from, to, amount, bc)
 	bc.MineBlock([]*Transaction{tx})
 	fmt.Println("Success!")
+}
+
+func (cli *CLI) createWallet(nodeID string) {
+	wallets, _ := NewWallets(nodeID)
+	address := wallets.CreateWallet()
+	wallets.SaveToFile(nodeID)
+
+	fmt.Printf("Your new address: %s\n", address)
 }
