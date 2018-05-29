@@ -57,10 +57,10 @@ func (cli *CLI) Run() {
 	//判断输入参数合法
 	cli.validateArgs()
 	nodeID := os.Getenv("NODE_ID")
-	if nodeID == "" {
-		fmt.Printf("NODE_ID env. var is not set!")
-		os.Exit(1)
-	}
+	// if nodeID == "" {
+	// 	fmt.Printf("NODE_ID env. var is not set!")
+	// 	os.Exit(1)
+	// }
 
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	//执行打印区块操作
@@ -74,6 +74,7 @@ func (cli *CLI) Run() {
 	sendFrom := sendCmd.String("from", "", "Source wallet address")
 	sendTo := sendCmd.String("to", "", "Destination wallet address")
 	sendAmount := sendCmd.Int("amount", 0, "Amount to send")
+	sendMine := sendCmd.Bool("mine", false, "Mine immediately on the same node")
 	//判断输入内容 执行相应操作
 	switch os.Args[1] {
 	case "getbalance":
@@ -133,7 +134,7 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 
-		cli.send(*sendFrom, *sendTo, *sendAmount)
+		cli.send(*sendFrom, *sendTo, *sendAmount,nodeID,*sendMine)
 	}
 }
 
@@ -154,10 +155,15 @@ func (cli *CLI) getBalance(address string) {
 	fmt.Printf("Balance of '%s': %d\n", address, balance)
 }
 
-func (cli *CLI) send(from, to string, amount int) {
+func (cli *CLI) send(from, to string, amount int, nodeID string, mineNow bool) {
 	bc := NewBlockchain(from)
 	defer bc.DB.Close()
-	tx := NewUTXOTransaction(from, to, amount, bc)
+	wallets, err := NewWallets(nodeID)
+	if err != nil {
+		log.Panic(err)
+	}
+	wallet := wallets.GetWallet(from)
+	tx := NewUTXOTransaction(&wallet,from, to, amount, bc)
 	bc.MineBlock([]*Transaction{tx})
 	fmt.Println("Success!")
 }
@@ -166,6 +172,5 @@ func (cli *CLI) createWallet(nodeID string) {
 	wallets, _ := NewWallets(nodeID)
 	address := wallets.CreateWallet()
 	wallets.SaveToFile(nodeID)
-
 	fmt.Printf("Your new address: %s\n", address)
 }
