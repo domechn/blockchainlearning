@@ -56,11 +56,6 @@ func (cli *CLI) printChain() {
 func (cli *CLI) Run() {
 	//判断输入参数合法
 	cli.validateArgs()
-	nodeID := os.Getenv("NODE_ID")
-	// if nodeID == "" {
-	// 	fmt.Printf("NODE_ID env. var is not set!")
-	// 	os.Exit(1)
-	// }
 
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	//执行打印区块操作
@@ -125,7 +120,7 @@ func (cli *CLI) Run() {
 		cli.printChain()
 	}
 	if createWalletCmd.Parsed() {
-		cli.createWallet(nodeID)
+		cli.createWallet()
 	}
 
 	if sendCmd.Parsed() {
@@ -134,7 +129,7 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 
-		cli.send(*sendFrom, *sendTo, *sendAmount,nodeID,*sendMine)
+		cli.send(*sendFrom, *sendTo, *sendAmount,*sendMine)
 	}
 }
 
@@ -155,10 +150,10 @@ func (cli *CLI) getBalance(address string) {
 	fmt.Printf("Balance of '%s': %d\n", address, balance)
 }
 
-func (cli *CLI) send(from, to string, amount int, nodeID string, mineNow bool) {
+func (cli *CLI) send(from, to string, amount int,  mineNow bool) {
 	bc := NewBlockchain(from)
 	defer bc.DB.Close()
-	wallets, err := NewWallets(nodeID)
+	wallets, err := NewWallets()
 	if err != nil {
 		log.Panic(err)
 	}
@@ -168,9 +163,9 @@ func (cli *CLI) send(from, to string, amount int, nodeID string, mineNow bool) {
 	fmt.Println("Success!")
 }
 
-func (cli *CLI) createWallet(nodeID string) {
-	wallets, _ := NewWallets(nodeID)
+func (cli *CLI) createWallet() {
+	wallets, _ := NewWallets()
 	address := wallets.CreateWallet()
-	wallets.SaveToFile(nodeID)
+	wallets.SaveToFile()
 	fmt.Printf("Your new address: %s\n", address)
 }

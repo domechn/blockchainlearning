@@ -14,7 +14,7 @@ import (
 	"log"
 )
 
-const walletFile = "wallet_%s.dat"
+const walletFile = "wallet.dat"
 const version = byte(0x00)
 const addressChecksumLen = 4
 
@@ -71,15 +71,15 @@ func (ws *Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
-func NewWallets(nodeID string) (*Wallets,error){
+func NewWallets() (*Wallets,error){
 	wallets := Wallets{}
 	wallets.Wallets = make(map[string]*Wallet)
-	err := wallets.LoadFromFile(nodeID)
+	err := wallets.LoadFromFile()
+	fmt.Printf("%v",wallets)
 	return &wallets,err
 }
 
-func (ws Wallets) LoadFromFile(nodeID string) error{
-	walletFile := fmt.Sprint(walletFile,nodeID)
+func (ws *Wallets) LoadFromFile() error{
 	if _,err := os.Stat(walletFile);os.IsNotExist(err){
 		return err
 	}
@@ -88,7 +88,7 @@ func (ws Wallets) LoadFromFile(nodeID string) error{
 		log.Panic(err)
 	}
 	var wallets Wallets
-	gob.Register(elliptic.P256)
+	gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(bytes.NewReader(fileContent))
 	err = decoder.Decode(&wallets)
 	if err != nil {
@@ -122,9 +122,8 @@ func (ws *Wallets) CreateWallet() string {
 	return address
 }
 
-func (ws *Wallets) SaveToFile(nodeID string){
+func (ws *Wallets) SaveToFile(){
 	var content bytes.Buffer
-	walletFile := fmt.Sprintf(walletFile,nodeID)
 	gob.Register(elliptic.P256())
 	encoder := gob.NewEncoder(&content)
 	err := encoder.Encode(ws)

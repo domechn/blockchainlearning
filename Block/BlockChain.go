@@ -176,13 +176,15 @@ func (i *BlockchainIterator) Next() *Block {
 func (bc *BlockChain) FindUnspentTransactions(address string) []Transaction {
 	var unspentTXs []Transaction
 	spentTXOs := make(map[string][]int)
+	pubKeyHash := Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[1:len(pubKeyHash)-4]
 	bci := bc.Iterator()
 	for {
 		block := bci.Next()
 		for _, transaction := range block.Transactions {
 			txID := hex.EncodeToString(transaction.ID)
 		Outputs:
-			for outIdx, _ := range transaction.Vout {
+			for outIdx, out := range transaction.Vout {
 				if spentTXOs[txID] != nil {
 					for _, spendOut := range spentTXOs[txID] {
 						if spendOut == outIdx {
@@ -190,13 +192,17 @@ func (bc *BlockChain) FindUnspentTransactions(address string) []Transaction {
 						}
 					}
 				}
+				if(out.IsLockedWithKey(pubKeyHash)){
 					unspentTXs = append(unspentTXs, *transaction)
+				}
 			}
 
 			if transaction.IsCoinbase() == false {
 				for _, in := range transaction.Vin {
 						inTxID := hex.EncodeToString(in.Txid)
-						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Vout)
+						if(in.UsesKey(pubKeyHash)){
+							spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Vout)
+						}
 				}
 			}
 		}
