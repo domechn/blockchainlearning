@@ -75,7 +75,6 @@ func NewWallets() (*Wallets,error){
 	wallets := Wallets{}
 	wallets.Wallets = make(map[string]*Wallet)
 	err := wallets.LoadFromFile()
-	fmt.Printf("%v",wallets)
 	return &wallets,err
 }
 

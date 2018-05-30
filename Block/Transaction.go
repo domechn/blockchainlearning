@@ -31,7 +31,7 @@ type TXOutput struct {
 }
 
 func (in *TXInput) UsesKey(pubHashKey []byte) bool {
-	lockingHash := HashPubKey(pubHashKey)
+	lockingHash := HashPubKey(in.PubKey)
 	return bytes.Compare(lockingHash,pubHashKey) == 0
 }
 

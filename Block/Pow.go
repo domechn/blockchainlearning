@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 )
 
-const targetBits = 24
+const targetBits = 1
 
 //定义POW 由当前区块和需要计算的值
 type ProofOfWork struct {
