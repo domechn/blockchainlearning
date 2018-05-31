@@ -1,33 +1,38 @@
 package Block
 
 import (
+	"math/big"
 	"fmt"
 	"log"
 	"encoding/hex"
 	"bytes"
 	"encoding/gob"
 	"crypto/sha256"
+	"crypto/rand"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"os"
 )
 
 const subsidy = 10
 
+//交易
 type Transaction struct {
-	ID   []byte
-	Vin  []TXInput
-	Vout []TXOutput
+	ID   []byte  //交易的唯一标识
+	Vin  []TXInput	//交易所包含的输入 可以多条
+	Vout []TXOutput  //交易所包含的输出 可以多条
 }
-
+//输入  输入及之前的交易的输出
 type TXInput struct {
-	Txid      []byte
-	Vout      int
-	Signature []byte
-	PubKey    []byte
+	Txid      []byte	//之前的ID
+	Vout      int	//引用的输出在之前交易中的索引
+	Signature []byte //
+	PubKey    []byte  //
 }
-
+//输出
 type TXOutput struct {
-	Value        int
-	PubKeyHash []byte
+	Value        int //金额
+	PubKeyHash []byte  //验证
 }
 
 func (in *TXInput) UsesKey(pubHashKey []byte) bool {
@@ -110,6 +115,89 @@ func NewUTXOTransaction(wallet *Wallet,from, to string, amount int, bc *BlockCha
 	}
 	tx := Transaction{nil, inputs, outputs}
 	tx.SetID()
-
+	bc.SignTransaction(&tx,wallet.PrivateKey)
 	return &tx
+}
+
+
+func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transaction){
+	if tx.IsCoinbase(){
+		return 
+	}
+
+	for _,vin := range tx.Vin{
+		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
+			log.Panic("ERROR: Previous transaction is not correct")
+		}
+	}
+
+	txCopy := tx.TrimmedCopy()
+	for inID,vin := range txCopy.Vin {
+		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
+		txCopy.Vin[inID].Signature = nil
+		txCopy.Vin[inID].PubKey = prevTx.Vout[vin.Vout].PubKeyHash
+		dataToSing := fmt.Sprintf("%x\n",txCopy)
+		r,s,err := ecdsa.Sign(rand.Reader,&privKey,[]byte(dataToSing))
+		if err != nil {
+			log.Panic(err)
+		}
+		signature := append(r.Bytes(),s.Bytes()...)
+		tx.Vin[inID].Signature = signature
+		tx.Vin[inID].PubKey = nil
+	}
+
+}
+
+func (tx *Transaction) TrimmedCopy() Transaction{
+	var inputs []TXInput
+	var outputs []TXOutput
+
+	for _ , in := range tx.Vin{
+		inputs = append(inputs,TXInput{in.Txid,in.Vout,nil,nil})
+	}
+
+	for _,out := range tx.Vout{
+		outputs = append(outputs,TXOutput{out.Value,out.PubKeyHash})
+	}
+
+	txCopy := Transaction{tx.ID,inputs,outputs}
+	return txCopy
+}
+
+func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
+	if tx.IsCoinbase() {
+		return true
+	}
+
+	for _, vin := range tx.Vin {
+		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
+			log.Panic("ERROR: Previous transaction is not correct")
+		}
+	}
+
+	txCopy := tx.TrimmedCopy()
+	curve := elliptic.P256()
+	
+	for inID,vin := range tx.Vin {
+		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
+		txCopy.Vin[inID].Signature = nil
+		txCopy.Vin[inID].PubKey = prevTx.Vout[vin.Vout].PubKeyHash
+		r := big.Int{}
+		s := big.Int{}
+		sigLen := len(vin.Signature)
+		r.SetBytes(vin.Signature[:sigLen/2])
+		s.SetBytes(vin.Signature[sigLen/2:])
+		x := big.Int{}
+		y := big.Int{}
+		keyLen := len(vin.PubKey)
+		x.SetBytes(vin.PubKey[:keyLen/2])
+		y.SetBytes(vin.PubKey[keyLen/2:])
+		dataToVerify := fmt.Sprintf("%x\n",txCopy)
+		rawPubKey := ecdsa.PublicKey{Curve:curve,X:&x,Y:&y}
+		if ecdsa.Verify(&rawPubKey,[]byte(dataToVerify),&r,&s) == false{
+			return false
+		}
+		txCopy.Vin[inID].PubKey = nil
+	}
+	return true
 }
