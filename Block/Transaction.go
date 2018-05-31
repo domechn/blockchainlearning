@@ -121,29 +121,33 @@ func NewUTXOTransaction(wallet *Wallet,from, to string, amount int, bc *BlockCha
 
 
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transaction){
-	if tx.IsCoinbase(){
-		return 
+	if tx.IsCoinbase() {
+		return
 	}
 
-	for _,vin := range tx.Vin{
+	for _, vin := range tx.Vin {
 		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
 			log.Panic("ERROR: Previous transaction is not correct")
 		}
 	}
 
 	txCopy := tx.TrimmedCopy()
-	for inID,vin := range txCopy.Vin {
+
+	for inID, vin := range txCopy.Vin {
 		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
 		txCopy.Vin[inID].Signature = nil
 		txCopy.Vin[inID].PubKey = prevTx.Vout[vin.Vout].PubKeyHash
-		dataToSing := fmt.Sprintf("%x\n",txCopy)
-		r,s,err := ecdsa.Sign(rand.Reader,&privKey,[]byte(dataToSing))
+
+		dataToSign := fmt.Sprintf("%x\n", txCopy)
+
+		r, s, err := ecdsa.Sign(rand.Reader, &privKey, []byte(dataToSign))
 		if err != nil {
 			log.Panic(err)
 		}
-		signature := append(r.Bytes(),s.Bytes()...)
+		signature := append(r.Bytes(), s.Bytes()...)
+
 		tx.Vin[inID].Signature = signature
-		tx.Vin[inID].PubKey = nil
+		txCopy.Vin[inID].PubKey = nil
 	}
 
 }

@@ -296,7 +296,7 @@ Work:
 	return accumulated, unspentOutputs
 }
 
-//通过交易ID寻找对应的交易
+//通过交易ID寻找对应的交易（为了找到本次输入关联的之前的交易）
 func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){
 	bci := bc.Iterator()
 	for{
@@ -315,6 +315,12 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){
 	return Transaction{},errors.New("Transaction is not found")
 }
 
+//对交易进行签名
+/**
+*	循环交易中的输入并找到输入对应的交易
+*	并存入列表
+*	将找到的交易用私钥进行加密
+*/
 func (bc *BlockChain) SignTransaction(tx *Transaction,privKey ecdsa.PrivateKey){
 	prevTXs := make(map[string]Transaction)
 	for _,vin := range tx.Vin{
@@ -327,6 +333,12 @@ func (bc *BlockChain) SignTransaction(tx *Transaction,privKey ecdsa.PrivateKey){
 	tx.Sign(privKey,prevTXs)
 }
 
+//验证交易
+/** 
+*	循环交易中的输入并找到输入对应的交易
+*	并存入列表
+*	将找到的交易进行验证
+*/
 func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool{
 	prevTXs := make(map[string]Transaction)
 	for _,vin := range tx.Vin{
