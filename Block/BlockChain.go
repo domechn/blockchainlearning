@@ -353,7 +353,7 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){
 		block := bci.Next()
 
 		for _ ,tx := range block.Transactions{
-			if bytes.Compare(tx.ID,ID) == 0 || tx.IsCoinbase(){
+			if bytes.Compare(tx.ID,ID) == 0{
 				return *tx,nil
 			}
 		}
@@ -390,6 +390,9 @@ func (bc *BlockChain) SignTransaction(tx *Transaction,privKey ecdsa.PrivateKey){
 *	将找到的交易进行验证
 */
 func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool{
+	if tx.IsCoinbase() {
+		return true
+	}
 	prevTXs := make(map[string]Transaction)
 	for _,vin := range tx.Vin{
 		prevTX , err := bc.FindTransaction(vin.Txid)

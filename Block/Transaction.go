@@ -68,9 +68,9 @@ func (tx *Transaction) SetID() {
 }
 
 func NewTXOutput(value int ,address string) *TXOutput  {
-	txo := TXOutput{value,nil}
+	txo := &TXOutput{value,nil}
 	txo.Lock([]byte(address))
-	return &txo
+	return txo
 }
 
 func NewCoinbaseTX(to, data string) *Transaction {
@@ -135,11 +135,11 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transact
 		return
 	}
 	
-	// for _, vin := range tx.Vin {
-	// 	if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
-	// 		log.Panic("ERROR: Previous transaction is not correct")
-	// 	}
-	// }
+	for _, vin := range tx.Vin {
+		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
+			log.Panic("ERROR: Previous transaction is not correct")
+		}
+	}
 
 	txCopy := tx.TrimmedCopy()
   
