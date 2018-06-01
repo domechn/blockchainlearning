@@ -159,7 +159,8 @@ func (cli *CLI) send(from, to string, amount int,  mineNow bool) {
 	}
 	wallet := wallets.GetWallet(from)
 	tx := NewUTXOTransaction(&wallet,from, to, amount, bc)
-	bc.MineBlock([]*Transaction{tx})
+	cbTx := NewCoinbaseTX(from,"")
+	bc.MineBlock([]*Transaction{cbTx,tx})
 	fmt.Println("Success!")
 }
 

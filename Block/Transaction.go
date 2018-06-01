@@ -35,6 +35,10 @@ type TXOutput struct {
 	PubKeyHash []byte  //验证
 }
 
+type TXOutputs struct {
+	Outputs []TXOutput
+}
+
 func (in *TXInput) UsesKey(pubHashKey []byte) bool {
 	lockingHash := HashPubKey(in.PubKey)
 	return bytes.Compare(lockingHash,pubHashKey) == 0
@@ -204,4 +208,28 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
 		txCopy.Vin[inID].PubKey = nil
 	}
 	return true
+}
+
+//序列化所有输出
+func (outs TXOutputs) Serialize() []byte{
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(outs)
+	if err != nil {
+		log.Panic(err)
+	}
+	return buff.Bytes()
+}
+
+//反序列化所有输出
+func DeserializeOutputs(data []byte) TXOutputs{
+	var outputs TXOutputs
+
+	dec := gob.NewDecoder(bytes.NewReader(data))
+	err := dec.Decode(&outputs)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return outputs
 }
