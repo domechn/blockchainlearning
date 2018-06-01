@@ -176,6 +176,7 @@ func (i *BlockchainIterator) Next() *Block {
 	return block
 }
 
+/**
 func (bc *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 	var unspentTXs []Transaction
 	spentTXOs := make(map[string][]int)
@@ -221,8 +222,9 @@ func (bc *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 
 	return unspentTXs
 }
+*/
 //将新的交易保存到数据库
-func (bc *BlockChain) MineBlock(transactions []*Transaction) {
+func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block{
 	var lastHash []byte
 
 	for _,tx := range transactions{
@@ -253,8 +255,10 @@ func (bc *BlockChain) MineBlock(transactions []*Transaction) {
 		bc.tip = newBlock.Hash
 		return nil
 	})
+	return newBlock
 }
 
+/**
 //查找到未花费的输出（余额）
 func (bc *BlockChain) FindUTXO(address string) []TXOutput {
 	pubKeyHash := Base58Decode([]byte(address))
@@ -270,8 +274,9 @@ func (bc *BlockChain) FindUTXO(address string) []TXOutput {
 	}
 	return UTXOs
 }
+*/
 
-func (bc *BlockChain) FindUTXOs() map[string]TXOutputs {
+func (bc *BlockChain) FindUTXO() map[string]TXOutputs {
 	UTXO := make(map[string]TXOutputs)
 	spentTXOs := make(map[string][]int)
 	bci := bc.Iterator()
@@ -314,6 +319,7 @@ func (bc *BlockChain) FindUTXOs() map[string]TXOutputs {
 	return UTXO
 }
 
+/**
 //寻找所有能花费的输出  将输出累加起来达到需要交易的值时将输出的集合返回
 func (bc *BlockChain) FindSpendableOutputs(address string, amount int) (int, map[string][]int) {
 	unspentOutputs := make(map[string][]int)
@@ -338,6 +344,7 @@ Work:
 	}
 	return accumulated, unspentOutputs
 }
+*/
 
 //通过交易ID寻找对应的交易（为了找到本次输入关联的之前的交易）
 func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){

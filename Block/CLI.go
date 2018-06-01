@@ -135,7 +135,9 @@ func (cli *CLI) Run() {
 
 func createBlockchain(address string) {
 	bc := CreateBlockchain(address)
-	bc.DB.Close()
+	defer bc.DB.Close()
+	UTXOSet := UTXOSet{bc}
+	UTXOSet.Reindex()
 	fmt.Println("Done!")
 }
 
@@ -143,24 +145,28 @@ func (cli *CLI) getBalance(address string) {
 	bc := NewBlockchain(address)
 	defer bc.DB.Close()
 	balance := 0
-	UTXOs := bc.FindUTXO(address)
+	UTXOs := bc.FindUTXO()
 	for _, out := range UTXOs {
-		balance += out.Value
+		for _,outa := range out.Outputs{
+			balance += outa.Value
+		}
 	}
 	fmt.Printf("Balance of '%s': %d\n", address, balance)
 }
 
 func (cli *CLI) send(from, to string, amount int,  mineNow bool) {
 	bc := NewBlockchain(from)
+	UTXOSet := UTXOSet{bc}
 	defer bc.DB.Close()
 	wallets, err := NewWallets()
 	if err != nil {
 		log.Panic(err)
 	}
 	wallet := wallets.GetWallet(from)
-	tx := NewUTXOTransaction(&wallet,from, to, amount, bc)
+	tx := NewUTXOTransaction(&wallet,from, to, amount, &UTXOSet)
 	cbTx := NewCoinbaseTX(from,"")
-	bc.MineBlock([]*Transaction{cbTx,tx})
+	newBlock := bc.MineBlock([]*Transaction{cbTx,tx})
+	UTXOSet.Update(newBlock)
 	fmt.Println("Success!")
 }
 
