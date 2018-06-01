@@ -88,13 +88,16 @@ func (tx Transaction) IsCoinbase() bool {
 	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 
-func NewUTXOTransaction(wallet *Wallet,from, to string, amount int, utxoSet *UTXOSet) *Transaction {
-	if from == to {
+func NewUTXOTransaction(wallet *Wallet, to string, amount int, utxoSet *UTXOSet) *Transaction {
+	pubKeyHash := HashPubKey(wallet.PublickKey)
+
+	toHash := Base58Decode([]byte(to))
+	toHash = toHash[1:len(toHash)-4]
+	
+	if bytes.Compare(pubKeyHash,toHash) == 0 {
 		fmt.Println("Cannot transacte to yourself")
 		os.Exit(1)
 	}
-	pubKeyHash := Base58Decode([]byte(from))
-	pubKeyHash = pubKeyHash[1:len(pubKeyHash)-4]
 	var inputs []TXInput
 	var outputs []TXOutput
 	acc, validOutputs := utxoSet.FindSpendableOutputs(pubKeyHash, amount)
@@ -115,6 +118,7 @@ func NewUTXOTransaction(wallet *Wallet,from, to string, amount int, utxoSet *UTX
 
 	outputs = append(outputs, *NewTXOutput(amount, to))
 
+	from := fmt.Sprintf("%s", wallet.GetAddress())
 	if acc > amount {
 		outputs = append(outputs, *NewTXOutput(acc-amount, from))
 
@@ -130,12 +134,12 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transact
 	if tx.IsCoinbase() {
 		return
 	}
-
-	for _, vin := range tx.Vin {
-		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
-			log.Panic("ERROR: Previous transaction is not correct")
-		}
-	}
+	
+	// for _, vin := range tx.Vin {
+	// 	if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
+	// 		log.Panic("ERROR: Previous transaction is not correct")
+	// 	}
+	// }
 
 	txCopy := tx.TrimmedCopy()
   
