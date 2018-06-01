@@ -132,7 +132,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transact
 	}
 
 	txCopy := tx.TrimmedCopy()
- 
+  
 	for inID, vin := range txCopy.Vin {
 		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
 		txCopy.Vin[inID].Signature = nil
