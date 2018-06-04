@@ -2,11 +2,9 @@ package Block
 
 import (
 	"time"
-
 	"bytes"
 	"encoding/gob"
 	"log"
-	"crypto/sha256"
 )
 
 //定义一个区块链结构
@@ -55,13 +53,12 @@ func DeserializeBlock(d []byte) *Block{
 
 func (b *Block) HashTransactions() []byte{
 	var txHashs = [][]byte{}
-	var txHash [32]byte
 
-	for _,value := range b.Transactions {
-		txHashs = append(txHashs,value.ID)
+	for _,tx := range b.Transactions {
+		txHashs = append(txHashs,tx.Serialize())
 	}
 
-	txHash = sha256.Sum256(bytes.Join(txHashs,[]byte{}))
-	return txHash[:]
+	mTree := NewMerkleTree(txHashs)
+	return mTree.RootNode.Data
 }
 

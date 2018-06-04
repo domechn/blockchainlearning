@@ -239,3 +239,25 @@ func DeserializeOutputs(data []byte) TXOutputs{
 
 	return outputs
 }
+
+
+func (tx *Transaction) Serialize() []byte{
+	var encoded bytes.Buffer
+
+	encode := gob.NewEncoder(&encoded)
+	err := encode.Encode(tx)
+	if err != nil {
+		log.Panic(err)
+	}
+	return encoded.Bytes()
+}
+
+func DeserializeTransaction(data []byte) Transaction{
+	var transaction Transaction
+	decoded := gob.NewDecoder(bytes.NewReader(data))
+	err := decoded.Decode(&transaction)
+	if err != nil{
+		log.Panic(err)
+	}
+	return transaction
+}
