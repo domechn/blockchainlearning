@@ -7,6 +7,7 @@ import (
 	"encoding/gob"
 	"bytes"
 	"io/ioutil"
+	"encoding/hex"
 )
 
 type Version struct {
@@ -25,6 +26,12 @@ type Inv struct {
 	Items   [][]byte
 }
 
+type GetData struct {
+	AddFrom string
+	Type    string
+	ID      []byte
+}
+
 const protocol = "tcp"
 const nodeVersion = 1
 const commandLength = 12
@@ -32,6 +39,8 @@ const commandLength = 12
 var nodeAddress string
 var miningAddress string
 var knownNodes = []string{"localhost:3000"}
+var blocksInTransit = [][]byte{}
+var mempool = make(map[string]Transaction)
 
 func StartServer(nodeID, minerAddress string) {
 	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
@@ -142,7 +151,13 @@ func sendGetBlocks(address string) {
 }
 
 func nodeIsKnown(address string) bool {
-	return true
+	for _, node := range knownNodes {
+		if node == address {
+			return true
+		}
+	}
+
+	return false
 }
 
 func handleGetBlocks(request []byte, bc *BlockChain) {
@@ -163,5 +178,73 @@ func sendInv(address, kind string, blocks [][]byte) {
 }
 
 func handleInv(request []byte, bc *BlockChain) {
+	var buff bytes.Buffer
+	var payload Inv
+
+	buff.Write(request[commandLength:])
+	dec := gob.NewDecoder(&buff)
+	err := dec.Decode(&payload)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	fmt.Printf("Recevied inventory with %d %s\n", len(payload.Items), payload.Type)
+
+	if payload.Type == "block" {
+		blocksInTransit = payload.Items
+		blockHash := payload.Items[0]
+		sendGetData(payload.AddFrom, "block", blockHash)
+		newInTransit := [][]byte{}
+		for _, b := range blocksInTransit {
+			if bytes.Compare(b, blockHash) != 0 {
+				newInTransit = append(newInTransit, b)
+			}
+		}
+		blocksInTransit = newInTransit
+	}
+
+	if payload.Type == "tx" {
+		txID := payload.Items[0]
+		if mempool[hex.EncodeToString(txID)].ID == nil {
+			sendGetData(payload.AddFrom, "tx", txID)
+		}
+	}
+}
+
+func sendGetData(address, kind string, id []byte) {
+
+}
+
+func handleGetData(request []byte, bc *BlockChain) {
+	var buff bytes.Buffer
+	var payload GetData
+
+	buff.Write(request[commandLength:])
+	dec := gob.NewDecoder(&buff)
+	err := dec.Decode(&payload)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if payload.Type == "block" {
+		block, err := bc.GetBlock(payload.ID)
+		if err != nil {
+			log.Panic(err)
+		}
+		sendBlock(payload.AddFrom, &block)
+	}
+
+	if payload.Type == "tx" {
+		txID := hex.EncodeToString(payload.ID)
+		tx := mempool[txID]
+		sendTx(payload.AddFrom, &tx)
+	}
+}
+
+func sendBlock(address string, block *Block) {
+
+}
+
+func sendTx(address string, tx *Transaction) {
 
 }

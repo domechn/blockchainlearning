@@ -411,3 +411,23 @@ func (bc *BlockChain) GetBestHeight() int {
 func (bc *BlockChain) GetBlockHashes() [][]byte {
 
 }
+
+func (bc *BlockChain) GetBlock(blockHash []byte) (Block, error) {
+	var block Block
+	err := bc.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		blockData := b.Get(blockHash)
+		if blockData == nil {
+			return errors.New("Block is not found.")
+		}
+		block = *DeserializeBlock(blockData)
+
+		return nil
+	})
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return block, nil
+}
