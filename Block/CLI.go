@@ -8,7 +8,6 @@ import (
 	"strconv"
 )
 
-
 type CLI struct {
 }
 
@@ -129,7 +128,7 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 
-		cli.send(*sendFrom, *sendTo, *sendAmount,*sendMine)
+		cli.send(*sendFrom, *sendTo, *sendAmount, *sendMine)
 	}
 }
 
@@ -147,7 +146,7 @@ func (cli *CLI) getBalance(address string) {
 	balance := 0
 	UTXOSet := UTXOSet{bc}
 	pubKeyHash := Base58Decode([]byte(address))
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	pubKeyHash = pubKeyHash[1: len(pubKeyHash)-4]
 	UTXOs := UTXOSet.FindUTXO(pubKeyHash)
 	for _, out := range UTXOs {
 		balance += out.Value
@@ -155,7 +154,7 @@ func (cli *CLI) getBalance(address string) {
 	fmt.Printf("Balance of '%s': %d\n", address, balance)
 }
 
-func (cli *CLI) send(from, to string, amount int,  mineNow bool) {
+func (cli *CLI) send(from, to string, amount int, mineNow bool) {
 	bc := NewBlockchain(from)
 	UTXOSet := UTXOSet{bc}
 	defer bc.DB.Close()
@@ -165,8 +164,8 @@ func (cli *CLI) send(from, to string, amount int,  mineNow bool) {
 	}
 	wallet := wallets.GetWallet(from)
 	tx := NewUTXOTransaction(&wallet, to, amount, &UTXOSet)
-	cbTx := NewCoinbaseTX(from,"")
-	newBlock := bc.MineBlock([]*Transaction{cbTx,tx})
+	cbTx := NewCoinbaseTX(from, "")
+	newBlock := bc.MineBlock([]*Transaction{cbTx, tx})
 	UTXOSet.Update(newBlock)
 	fmt.Println("Success!")
 }

@@ -224,10 +224,10 @@ func (bc *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 }
 */
 //将新的交易保存到数据库
-func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block{
+func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
 
-	for _,tx := range transactions{
+	for _, tx := range transactions {
 		if bc.VerifyTransaction(tx) != true {
 			log.Panic("ERROR:Invalid transaction")
 		}
@@ -241,14 +241,14 @@ func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block{
 	if err != nil {
 		log.Panic(err)
 	}
-	newBlock := NewBlock(transactions,lastHash)
+	newBlock := NewBlock(transactions, lastHash)
 	bc.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
-		err = b.Put(newBlock.Hash,newBlock.Serialize())
+		err = b.Put(newBlock.Hash, newBlock.Serialize())
 		if err != nil {
 			log.Panic(err)
 		}
-		err = b.Put([]byte("l"),newBlock.Hash)
+		err = b.Put([]byte("l"), newBlock.Hash)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -347,22 +347,22 @@ Work:
 */
 
 //通过交易ID寻找对应的交易（为了找到本次输入关联的之前的交易）
-func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){
+func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 	bci := bc.Iterator()
-	for{
+	for {
 		block := bci.Next()
 
-		for _ ,tx := range block.Transactions{
-			if bytes.Compare(tx.ID,ID) == 0{
-				return *tx,nil
+		for _, tx := range block.Transactions {
+			if bytes.Compare(tx.ID, ID) == 0 {
+				return *tx, nil
 			}
 		}
 
-		if len(block.PrevHash) == 0{
+		if len(block.PrevHash) == 0 {
 			break
 		}
 	}
-	return Transaction{},errors.New("Transaction is not found")
+	return Transaction{}, errors.New("Transaction is not found")
 }
 
 //对交易进行签名
@@ -371,16 +371,16 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction,error){
 *	并存入列表
 *	将找到的交易用私钥进行加密
 */
-func (bc *BlockChain) SignTransaction(tx *Transaction,privKey ecdsa.PrivateKey){
+func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
 	prevTXs := make(map[string]Transaction)
-	for _,vin := range tx.Vin{
-		prevTX , err := bc.FindTransaction(vin.Txid)
+	for _, vin := range tx.Vin {
+		prevTX, err := bc.FindTransaction(vin.Txid)
 		if err != nil {
 			log.Panic(err)
 		}
-		prevTXs[hex.EncodeToString(prevTX.ID)]=prevTX
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
 	}
-	tx.Sign(privKey,prevTXs)
+	tx.Sign(privKey, prevTXs)
 }
 
 //验证交易
@@ -389,17 +389,25 @@ func (bc *BlockChain) SignTransaction(tx *Transaction,privKey ecdsa.PrivateKey){
 *	并存入列表
 *	将找到的交易进行验证
 */
-func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool{
+func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
 	}
 	prevTXs := make(map[string]Transaction)
-	for _,vin := range tx.Vin{
-		prevTX , err := bc.FindTransaction(vin.Txid)
+	for _, vin := range tx.Vin {
+		prevTX, err := bc.FindTransaction(vin.Txid)
 		if err != nil {
 			log.Panic(err)
 		}
-		prevTXs[hex.EncodeToString(prevTX.ID)]=prevTX
+		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
 	}
 	return tx.Verify(prevTXs)
+}
+
+func (bc *BlockChain) GetBestHeight() int {
+
+}
+
+func (bc *BlockChain) GetBlockHashes() [][]byte {
+
 }

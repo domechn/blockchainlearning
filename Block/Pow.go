@@ -59,7 +59,7 @@ func Int64ToBytes(i int64) []byte {
 }
 
 //检验区块是否合法 如果当前块的hash小于约定值 说明合法
-func (pow *ProofOfWork) IsVaild() bool{
+func (pow *ProofOfWork) IsVaild() bool {
 	var hashInt big.Int
 	data := pow.prepareData(pow.block.Nonce)
 	hash := sha256.Sum256(data)

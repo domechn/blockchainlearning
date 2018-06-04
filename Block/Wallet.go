@@ -27,33 +27,32 @@ type Wallets struct {
 	Wallets map[string]*Wallet
 }
 
-func NewWallet() *Wallet{
-	private ,public := newKeyPair()
-	wallet := Wallet{private,public}
+func NewWallet() *Wallet {
+	private, public := newKeyPair()
+	wallet := Wallet{private, public}
 	return &wallet
 }
 
-
-func newKeyPair() (ecdsa.PrivateKey,[]byte){
+func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
-	private ,_ := ecdsa.GenerateKey(curve,rand.Reader)
-	pubKey := append(private.PublicKey.X.Bytes(),private.PublicKey.Y.Bytes()...)
-	return *private,pubKey
+	private, _ := ecdsa.GenerateKey(curve, rand.Reader)
+	pubKey := append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)
+	return *private, pubKey
 }
 
-func (w Wallet) getAddress()[]byte{
+func (w Wallet) getAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublickKey)
-	versionedPayload := append([]byte{version},pubKeyHash...)
+	versionedPayload := append([]byte{version}, pubKeyHash...)
 	checksum := checksum(versionedPayload)
-	fullPayload := append(versionedPayload,checksum...)
+	fullPayload := append(versionedPayload, checksum...)
 	address := Base58Encode(fullPayload)
 	return []byte(address)
 }
 
-func HashPubKey(pubKey []byte)[]byte  {
+func HashPubKey(pubKey []byte) []byte {
 	publicSHA256 := sha256.Sum256(pubKey)
 	RIPEMD160Hasher := ripemd160.New()
-	_ ,err := RIPEMD160Hasher.Write(publicSHA256[:])
+	_, err := RIPEMD160Hasher.Write(publicSHA256[:])
 	if err != nil {
 		log.Panic(err)
 	}
@@ -61,7 +60,7 @@ func HashPubKey(pubKey []byte)[]byte  {
 	return publicRIPEMD160
 }
 
-func checksum(payload []byte) []byte{
+func checksum(payload []byte) []byte {
 	firstSHA := sha256.Sum256(payload)
 	secondSHA := sha256.Sum256(firstSHA[:])
 	return secondSHA[:addressChecksumLen]
@@ -71,18 +70,18 @@ func (ws *Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
-func NewWallets() (*Wallets,error){
+func NewWallets() (*Wallets, error) {
 	wallets := Wallets{}
 	wallets.Wallets = make(map[string]*Wallet)
 	err := wallets.LoadFromFile()
-	return &wallets,err
+	return &wallets, err
 }
 
-func (ws *Wallets) LoadFromFile() error{
-	if _,err := os.Stat(walletFile);os.IsNotExist(err){
+func (ws *Wallets) LoadFromFile() error {
+	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
 	}
-	fileContent ,err := ioutil.ReadFile(walletFile)
+	fileContent, err := ioutil.ReadFile(walletFile)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -97,9 +96,9 @@ func (ws *Wallets) LoadFromFile() error{
 	return nil
 }
 
-func (wallet Wallet) GetAddress() []byte{
+func (wallet Wallet) GetAddress() []byte {
 	pubHashKey := HashPubKey(wallet.PublickKey)
-	versionedPayload := append([]byte{version},pubHashKey...)
+	versionedPayload := append([]byte{version}, pubHashKey...)
 	checksum := checksum(versionedPayload)
 	fullPayload := append(versionedPayload, checksum...)
 	address := Base58Encode(fullPayload)
@@ -107,9 +106,9 @@ func (wallet Wallet) GetAddress() []byte{
 }
 
 func (ws *Wallets) GetAddresses() []string {
-	var addresses []string 
-	for address := range ws.Wallets{
-		addresses = append(addresses,address)
+	var addresses []string
+	for address := range ws.Wallets {
+		addresses = append(addresses, address)
 	}
 	return addresses
 }
@@ -121,7 +120,7 @@ func (ws *Wallets) CreateWallet() string {
 	return address
 }
 
-func (ws *Wallets) SaveToFile(){
+func (ws *Wallets) SaveToFile() {
 	var content bytes.Buffer
 	gob.Register(elliptic.P256())
 	encoder := gob.NewEncoder(&content)
@@ -129,7 +128,7 @@ func (ws *Wallets) SaveToFile(){
 	if err != nil {
 		log.Panic(err)
 	}
-	err = ioutil.WriteFile(walletFile,content.Bytes(),0644)
+	err = ioutil.WriteFile(walletFile, content.Bytes(), 0644)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -18,21 +18,23 @@ const subsidy = 10
 
 //交易
 type Transaction struct {
-	ID   []byte  //交易的唯一标识
-	Vin  []TXInput	//交易所包含的输入 可以多条
-	Vout []TXOutput  //交易所包含的输出 可以多条
+	ID   []byte     //交易的唯一标识
+	Vin  []TXInput  //交易所包含的输入 可以多条
+	Vout []TXOutput //交易所包含的输出 可以多条
 }
+
 //输入  输入及之前的交易的输出
 type TXInput struct {
-	Txid      []byte	//之前的ID
-	Vout      int	//引用的输出在之前交易中的索引
+	Txid      []byte //之前的ID
+	Vout      int    //引用的输出在之前交易中的索引
 	Signature []byte //
-	PubKey    []byte  //
+	PubKey    []byte //
 }
+
 //输出
 type TXOutput struct {
-	Value        int //金额
-	PubKeyHash []byte  //验证
+	Value      int    //金额
+	PubKeyHash []byte //验证
 }
 
 type TXOutputs struct {
@@ -41,18 +43,18 @@ type TXOutputs struct {
 
 func (in *TXInput) UsesKey(pubHashKey []byte) bool {
 	lockingHash := HashPubKey(in.PubKey)
-	return bytes.Compare(lockingHash,pubHashKey) == 0
+	return bytes.Compare(lockingHash, pubHashKey) == 0
 }
 
-func (out *TXOutput) IsLockedWithKey(pubHashKey []byte) bool{
-	return bytes.Compare(out.PubKeyHash,pubHashKey) == 0
+func (out *TXOutput) IsLockedWithKey(pubHashKey []byte) bool {
+	return bytes.Compare(out.PubKeyHash, pubHashKey) == 0
 }
 
-func (out *TXOutput) Lock(address []byte)  {
+func (out *TXOutput) Lock(address []byte) {
 	pubKeyHash := Base58Decode(address)
 	pubKeyHash = pubKeyHash[1:len(pubKeyHash)-4]
 	out.PubKeyHash = pubKeyHash
-	
+
 }
 
 func (tx *Transaction) SetID() {
@@ -67,8 +69,8 @@ func (tx *Transaction) SetID() {
 	tx.ID = hash[:]
 }
 
-func NewTXOutput(value int ,address string) *TXOutput  {
-	txo := &TXOutput{value,nil}
+func NewTXOutput(value int, address string) *TXOutput {
+	txo := &TXOutput{value, nil}
 	txo.Lock([]byte(address))
 	return txo
 }
@@ -77,8 +79,8 @@ func NewCoinbaseTX(to, data string) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Reward to '%s'", to)
 	}
-	txin := TXInput{[]byte{}, -1,nil,[]byte(data)}
-	txout := NewTXOutput(subsidy,to)
+	txin := TXInput{[]byte{}, -1, nil, []byte(data)}
+	txout := NewTXOutput(subsidy, to)
 	tx := Transaction{nil, []TXInput{txin}, []TXOutput{*txout}}
 	tx.SetID()
 	return &tx
@@ -93,8 +95,8 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, utxoSet *UTXOSet)
 
 	toHash := Base58Decode([]byte(to))
 	toHash = toHash[1:len(toHash)-4]
-	
-	if bytes.Compare(pubKeyHash,toHash) == 0 {
+
+	if bytes.Compare(pubKeyHash, toHash) == 0 {
 		fmt.Println("Cannot transacte to yourself")
 		os.Exit(1)
 	}
@@ -111,7 +113,7 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, utxoSet *UTXOSet)
 		}
 
 		for _, out := range outs {
-			input := TXInput{txID, out, nil,wallet.PublickKey}
+			input := TXInput{txID, out, nil, wallet.PublickKey}
 			inputs = append(inputs, input)
 		}
 	}
@@ -125,16 +127,15 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, utxoSet *UTXOSet)
 	}
 	tx := Transaction{nil, inputs, outputs}
 	tx.SetID()
-	utxoSet.Blockchain.SignTransaction(&tx,wallet.PrivateKey)
+	utxoSet.Blockchain.SignTransaction(&tx, wallet.PrivateKey)
 	return &tx
 }
 
-
-func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transaction){
+func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
 	if tx.IsCoinbase() {
 		return
 	}
-	
+
 	for _, vin := range tx.Vin {
 		if prevTXs[hex.EncodeToString(vin.Txid)].ID == nil {
 			log.Panic("ERROR: Previous transaction is not correct")
@@ -142,7 +143,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transact
 	}
 
 	txCopy := tx.TrimmedCopy()
-  
+
 	for inID, vin := range txCopy.Vin {
 		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
 		txCopy.Vin[inID].Signature = nil
@@ -162,23 +163,23 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey,prevTXs map[string]Transact
 
 }
 
-func (tx *Transaction) TrimmedCopy() Transaction{
+func (tx *Transaction) TrimmedCopy() Transaction {
 	var inputs []TXInput
 	var outputs []TXOutput
 
-	for _ , in := range tx.Vin{
-		inputs = append(inputs,TXInput{in.Txid,in.Vout,nil,nil})
+	for _, in := range tx.Vin {
+		inputs = append(inputs, TXInput{in.Txid, in.Vout, nil, nil})
 	}
 
-	for _,out := range tx.Vout{
-		outputs = append(outputs,TXOutput{out.Value,out.PubKeyHash})
+	for _, out := range tx.Vout {
+		outputs = append(outputs, TXOutput{out.Value, out.PubKeyHash})
 	}
 
-	txCopy := Transaction{tx.ID,inputs,outputs}
+	txCopy := Transaction{tx.ID, inputs, outputs}
 	return txCopy
 }
 
-func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
+func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
 	}
@@ -191,8 +192,8 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
 
 	txCopy := tx.TrimmedCopy()
 	curve := elliptic.P256()
-	
-	for inID,vin := range tx.Vin {
+
+	for inID, vin := range tx.Vin {
 		prevTx := prevTXs[hex.EncodeToString(vin.Txid)]
 		txCopy.Vin[inID].Signature = nil
 		txCopy.Vin[inID].PubKey = prevTx.Vout[vin.Vout].PubKeyHash
@@ -206,9 +207,9 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
 		keyLen := len(vin.PubKey)
 		x.SetBytes(vin.PubKey[:keyLen/2])
 		y.SetBytes(vin.PubKey[keyLen/2:])
-		dataToVerify := fmt.Sprintf("%x\n",txCopy)
-		rawPubKey := ecdsa.PublicKey{Curve:curve,X:&x,Y:&y}
-		if ecdsa.Verify(&rawPubKey,[]byte(dataToVerify),&r,&s) == false{
+		dataToVerify := fmt.Sprintf("%x\n", txCopy)
+		rawPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
+		if ecdsa.Verify(&rawPubKey, []byte(dataToVerify), &r, &s) == false {
 			return false
 		}
 		txCopy.Vin[inID].PubKey = nil
@@ -217,7 +218,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool{
 }
 
 //序列化所有输出
-func (outs TXOutputs) Serialize() []byte{
+func (outs TXOutputs) Serialize() []byte {
 	var buff bytes.Buffer
 	enc := gob.NewEncoder(&buff)
 	err := enc.Encode(outs)
@@ -228,7 +229,7 @@ func (outs TXOutputs) Serialize() []byte{
 }
 
 //反序列化所有输出
-func DeserializeOutputs(data []byte) TXOutputs{
+func DeserializeOutputs(data []byte) TXOutputs {
 	var outputs TXOutputs
 
 	dec := gob.NewDecoder(bytes.NewReader(data))
@@ -240,8 +241,7 @@ func DeserializeOutputs(data []byte) TXOutputs{
 	return outputs
 }
 
-
-func (tx *Transaction) Serialize() []byte{
+func (tx *Transaction) Serialize() []byte {
 	var encoded bytes.Buffer
 
 	encode := gob.NewEncoder(&encoded)
@@ -252,11 +252,11 @@ func (tx *Transaction) Serialize() []byte{
 	return encoded.Bytes()
 }
 
-func DeserializeTransaction(data []byte) Transaction{
+func DeserializeTransaction(data []byte) Transaction {
 	var transaction Transaction
 	decoded := gob.NewDecoder(bytes.NewReader(data))
 	err := decoded.Decode(&transaction)
-	if err != nil{
+	if err != nil {
 		log.Panic(err)
 	}
 	return transaction
