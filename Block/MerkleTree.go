@@ -29,6 +29,7 @@ func NewMerkleNode(left, right *MerkleNode, Data []byte) *MerkleNode {
 	return &mNode
 }
 
+//将数据转成merkle树
 func NewMerkleTree(data [][]byte) *MerkleTree {
 	var nodes []MerkleNode
 	if len(data)%2 != 0 {

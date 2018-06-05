@@ -404,14 +404,17 @@ func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
 	return tx.Verify(prevTXs)
 }
 
+//获取区块最长的长度
 func (bc *BlockChain) GetBestHeight() int {
 
 }
 
+//获得整个区块链的hash
 func (bc *BlockChain) GetBlockHashes() [][]byte {
 
 }
 
+//通过区块的hash获得对应区块
 func (bc *BlockChain) GetBlock(blockHash []byte) (Block, error) {
 	var block Block
 	err := bc.DB.View(func(tx *bolt.Tx) error {
