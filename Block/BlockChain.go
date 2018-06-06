@@ -405,11 +405,11 @@ func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
 }
 
 func (bc *BlockChain) GetBestHeight() int {
-
+return 1
 }
 
 func (bc *BlockChain) GetBlockHashes() [][]byte {
-
+return [][]byte{}
 }
 
 func (bc *BlockChain) GetBlock(blockHash []byte) (Block, error) {

@@ -1,0 +1,20 @@
+{
+	"ImportPath": "mybclearning",
+	"GoVersion": "go1.9",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.3.1-5-gfd01fc7",
+			"Rev": "fd01fc79c553a8e99d512a07e8e0c63d4a3ccfc5"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ripemd160",
+			"Rev": "b47b1587369238182299fe4dad77d05b8b461e06"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
+		}
+	]
+}
