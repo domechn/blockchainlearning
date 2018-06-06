@@ -42,6 +42,7 @@ var knownNodes = []string{"localhost:3000"}
 var blocksInTransit = [][]byte{}
 var mempool = make(map[string]Transaction)
 
+//通过节点ID和主地址启动服务
 func StartServer(nodeID, minerAddress string) {
 	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
 	miningAddress = minerAddress
@@ -65,6 +66,7 @@ func StartServer(nodeID, minerAddress string) {
 	}
 }
 
+//发送版本
 func sendVersion(addr string, bc *BlockChain) {
 	bestHeight := bc.GetBestHeight()
 	payload := gobEncode(Version{nodeVersion, bestHeight, nodeAddress})
@@ -72,6 +74,7 @@ func sendVersion(addr string, bc *BlockChain) {
 	sendData(addr, request)
 }
 
+//读取连接内容
 func handleConnection(conn net.Conn, bc *BlockChain) {
 	request, err := ioutil.ReadAll(conn)
 	if err != nil {
@@ -123,6 +126,9 @@ func sendData(addr string, payload []byte) {
 
 }
 
+//处理当前版本
+//如果当前区块链的最高高度是比接收到的高度高那么就将当前版本发送给节点
+//如果当前区块不比接收到的高，则向接收地址请求区块
 func handleVersion(request []byte, bc *BlockChain) {
 	var buff bytes.Buffer
 	var payload Version
@@ -146,6 +152,7 @@ func handleVersion(request []byte, bc *BlockChain) {
 	}
 }
 
+//发送请求区块的通知
 func sendGetBlocks(address string) {
 
 }
