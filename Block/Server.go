@@ -17,15 +17,7 @@ type Version struct {
 	AddFrom    string
 }
 
-type GetBlocks struct {
-	AddFrom string
-}
 
-type Inv struct {
-	AddFrom string
-	Type    string
-	Items   [][]byte
-}
 
 type GetData struct {
 	AddFrom string
@@ -82,7 +74,7 @@ func StartServer(nodeID, minerAddress string) {
 	if nodeAddress != knownNodes[0] {
 		sendVersion(knownNodes[0], bc)
 	}
-
+	// time.Sleep(time.Second*5)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -127,7 +119,7 @@ func handleConnection(conn net.Conn, bc *BlockChain) {
 		fmt.Println("Unknown command!")
 	}
 
-	defer conn.Close()
+	 conn.Close()
 
 }
 
@@ -198,7 +190,8 @@ func sendData(addr string, data []byte) {
 		return 
 	}
 	defer conn.Close()
-	_,err = io.Copy(conn,bytes.NewBuffer(data))
+	_, err = io.Copy(conn, bytes.NewReader(data))
+
 	if err != nil {
 		log.Panic(err)
 	}
@@ -208,9 +201,10 @@ func sendData(addr string, data []byte) {
 //如果当前区块链的最高高度是比接收到的高度高那么就将当前版本发送给节点
 //如果当前区块不比接收到的高，则向接收地址请求区块
 func handleVersion(request []byte, bc *BlockChain) {
+	
 	var buff bytes.Buffer
 	var payload Version
-	buff.Write(request[:commandLength])
+	buff.Write(request[commandLength:])
 	decode := gob.NewDecoder(&buff)
 	err := decode.Decode(&payload)
 	if err != nil {
@@ -220,8 +214,10 @@ func handleVersion(request []byte, bc *BlockChain) {
 	myBestHeight := bc.GetBestHeight()
 	foreignerBestHeight := payload.BestHeight
 	if myBestHeight < foreignerBestHeight {
+		
 		sendGetBlocks(payload.AddFrom)
 	} else if myBestHeight > foreignerBestHeight {
+		
 		sendVersion(payload.AddFrom, bc)
 	}
 
@@ -250,7 +246,7 @@ func nodeIsKnown(address string) bool {
 
 func handleGetBlocks(request []byte, bc *BlockChain) {
 	var buff bytes.Buffer
-	var payload GetBlocks
+	var payload getblocks
 	buff.Write(request[commandLength:])
 	decode := gob.NewDecoder(&buff)
 	err := decode.Decode(&payload)
@@ -258,7 +254,7 @@ func handleGetBlocks(request []byte, bc *BlockChain) {
 		log.Panic(err)
 	}
 	blocks := bc.GetBlockHashes()
-	sendInv(payload.AddFrom, "block", blocks)
+	sendInv(payload.AddrFrom, "block", blocks)
 }
 
 func sendInv(address, kind string, items [][]byte) {
@@ -271,7 +267,7 @@ func sendInv(address, kind string, items [][]byte) {
 
 func handleInv(request []byte, bc *BlockChain) {
 	var buff bytes.Buffer
-	var payload Inv
+	var payload inv
 
 	buff.Write(request[commandLength:])
 	dec := gob.NewDecoder(&buff)
@@ -285,7 +281,7 @@ func handleInv(request []byte, bc *BlockChain) {
 	if payload.Type == "block" {
 		blocksInTransit = payload.Items
 		blockHash := payload.Items[0]
-		sendGetData(payload.AddFrom, "block", blockHash)
+		sendGetData(payload.AddrFrom, "block", blockHash)
 		newInTransit := [][]byte{}
 		for _, b := range blocksInTransit {
 			if bytes.Compare(b, blockHash) != 0 {
@@ -298,7 +294,7 @@ func handleInv(request []byte, bc *BlockChain) {
 	if payload.Type == "tx" {
 		txID := payload.Items[0]
 		if mempool[hex.EncodeToString(txID)].ID == nil {
-			sendGetData(payload.AddFrom, "tx", txID)
+			sendGetData(payload.AddrFrom, "tx", txID)
 		}
 	}
 }
