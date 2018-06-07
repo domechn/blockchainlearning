@@ -14,12 +14,13 @@ type Block struct {
 	PrevHash     []byte         //前一块哈希值
 	Hash         []byte         //哈希
 	Nonce        int            //工作量证明
+	Height		 int
 }
 
 //生成一个区块并计算它的哈希值和计算量证明
-func NewBlock(transactions []*Transaction, prevBlockHash []byte) (block *Block) {
+func NewBlock(transactions []*Transaction, prevBlockHash []byte , height int) (block *Block) {
 	//创建一个区块
-	block = &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
+	block = &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0,height}
 	//创建一个新的POW
 	pow := NewproofOfWork(block)
 	//生成哈希值和工作量证明

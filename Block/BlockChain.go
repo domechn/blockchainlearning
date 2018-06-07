@@ -12,7 +12,8 @@ import (
 )
 
 //数据库文件位置
-const dbFile = "blockchain.db"
+const dbFile = "blockchain_%s.db"
+
 
 //用于存放区块链信息的桶
 //桶中结构
@@ -33,6 +34,7 @@ type BlockchainIterator struct {
 	db          *bolt.DB
 }
 
+/**
 //将区块添加到链尾
 func (bc *BlockChain) AddBlock(transactions []*Transaction) {
 	var lastHash []byte
@@ -70,14 +72,52 @@ func (bc *BlockChain) AddBlock(transactions []*Transaction) {
 	//newBlock := NewBlock(data,prevBlock.Hash)
 	//bc.Blocks = append(bc.Blocks,newBlock)
 }
+*/
+
+
+func (bc *BlockChain) AddBlock(block *Block){
+	err := bc.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		blockInDb := b.Get(block.Hash)
+
+		if blockInDb != nil {
+			return nil
+		}
+
+		blockData := block.Serialize()
+		err := b.Put(block.Hash,blockData)
+		if err != nil{
+			log.Panic(err)
+		}
+
+		lastHash := b.Get([]byte("l"))
+		lastBlockData := b.Get(lastHash)
+		lastBlock := DeserializeBlock(lastBlockData)
+
+		if block.Height > lastBlock.Height {
+			err = b.Put([]byte("l"),block.Hash)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			bc.tip = block.Hash
+		}
+		return nil
+	})
+	if err != nil {
+		 log.Panic(err)
+	}
+}
+
 
 //生成创世块
 func NewGenesisBlock(coinbase *Transaction) *Block {
-	return NewBlock([]*Transaction{coinbase}, []byte{})
+	return NewBlock([]*Transaction{coinbase}, []byte{},0)
 }
 
-func dbExists() bool {
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+func dbExists(file string) bool {
+	fmt.Println(file)
+	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return false
 	}
 
@@ -85,8 +125,9 @@ func dbExists() bool {
 }
 
 //生成一条新的区块链
-func CreateBlockchain(address string) (blockChain *BlockChain) {
-	if dbExists() {
+func CreateBlockchain(address ,nodeID string) (blockChain *BlockChain) {
+	dbFile := fmt.Sprintf(dbFile,nodeID)	
+	if dbExists(dbFile) {
 		fmt.Println("Blockchain already exists.")
 		os.Exit(1)
 	}
@@ -125,8 +166,9 @@ func CreateBlockchain(address string) (blockChain *BlockChain) {
 	return &bc
 }
 
-func NewBlockchain(address string) *BlockChain {
-	if dbExists() == false {
+func NewBlockchain(nodeID string) *BlockChain {
+	dbFile := fmt.Sprintf(dbFile,nodeID)
+	if dbExists(dbFile) == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
@@ -226,6 +268,7 @@ func (bc *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 //将新的交易保存到数据库
 func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
+	var lastHeight int
 
 	for _, tx := range transactions {
 		if bc.VerifyTransaction(tx) != true {
@@ -236,12 +279,17 @@ func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block {
 	err := bc.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash = b.Get([]byte("l"))
+
+		blockData := b.Get(lastHash)
+		block := DeserializeBlock(blockData)
+
+		lastHeight = block.Height
 		return nil
 	})
 	if err != nil {
 		log.Panic(err)
 	}
-	newBlock := NewBlock(transactions, lastHash)
+	newBlock := NewBlock(transactions, lastHash , lastHeight+1)
 	bc.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		err = b.Put(newBlock.Hash, newBlock.Serialize())
