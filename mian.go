@@ -1,6 +1,6 @@
 package main
 
-import "mybclearning/Block"
+import "blockchainlearning/Block"
 
 func main() {
 	/*bc := Block.NewBlockChain()
