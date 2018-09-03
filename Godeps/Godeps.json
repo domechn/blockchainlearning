@@ -4,7 +4,7 @@
 	"GodepVersion": "v80",
 	"Deps": [
 		{
-			"ImportPath": "github.com/boltdb/bolt",
+			"ImportPath": "github.com/boltdb/bolt", 
 			"Comment": "v1.3.1-5-gfd01fc7",
 			"Rev": "fd01fc79c553a8e99d512a07e8e0c63d4a3ccfc5"
 		},
